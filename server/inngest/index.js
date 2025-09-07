@@ -4,13 +4,16 @@ import User from "../models/user.js";
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "movie-ticket-booking" });
 
-// Create user
+/**
+ * Sync user when Clerk user is created
+ */
 const syncusercreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event, step }) => {
     try {
       const { id, first_name, last_name, email_addresses, image_url } = event.data;
+
       const userdata = {
         _id: id,
         name: `${first_name} ${last_name}`,
@@ -21,17 +24,18 @@ const syncusercreation = inngest.createFunction(
       await User.findByIdAndUpdate(id, userdata, { upsert: true, new: true });
 
       await step.run("log-user-created", async () => {
-        console.log("User created/updated:", userdata);
+        console.log("✅ User created/updated:", userdata);
       });
-
     } catch (err) {
-      console.error("Error creating user:", err);
+      console.error("❌ Error creating user:", err);
       throw err;
     }
   }
 );
 
-// Delete user
+/**
+ * Delete user when Clerk user is deleted
+ */
 const syncuserdeletion = inngest.createFunction(
   { id: "delete-user-with-clerk" },
   { event: "clerk/user.deleted" },
@@ -41,23 +45,25 @@ const syncuserdeletion = inngest.createFunction(
       await User.findByIdAndDelete(id);
 
       await step.run("log-user-deleted", async () => {
-        console.log("User deleted:", id);
+        console.log("🗑️ User deleted:", id);
       });
-
     } catch (err) {
-      console.error("Error deleting user:", err);
+      console.error("❌ Error deleting user:", err);
       throw err;
     }
   }
 );
 
-// Update user
+/**
+ * Update user when Clerk user is updated
+ */
 const syncuserupdate = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
     try {
       const { id, first_name, last_name, email_addresses, image_url } = event.data;
+
       const userdata = {
         _id: id,
         name: `${first_name} ${last_name}`,
@@ -67,10 +73,9 @@ const syncuserupdate = inngest.createFunction(
 
       await User.findByIdAndUpdate(id, userdata, { new: true });
 
-      console.log("User updated:", userdata);
-
+      console.log("✏️ User updated:", userdata);
     } catch (err) {
-      console.error("Error updating user:", err);
+      console.error("❌ Error updating user:", err);
       throw err;
     }
   }
